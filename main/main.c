@@ -18,5 +18,9 @@ void app_main()
 {
   printf("Main running on core : %d\n", xPortGetCoreID());
   init_play(1);
-  play(24);
+  for(int i=12;i<96;i++) {
+  	change_dir();
+  	play(i);
+  	vTaskDelay(250 / portTICK_PERIOD_MS);
+  }
 }

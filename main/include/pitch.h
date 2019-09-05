@@ -1,7 +1,9 @@
 #ifndef PITCH_H
 #define PITCH_H
 
-static long base_period[11] = { 
+#include "math.h"
+
+static long base_period[12] = { 
 	61162,
 	57703,
 	54466,
@@ -17,7 +19,7 @@ static long base_period[11] = {
 	};
 
 long period(int note) {
-	return base_period[note%11] / (note/11 + 1);
+	return base_period[note%12] / pow(2, (note/12));
 }
 
 #endif

@@ -27,13 +27,18 @@ void stop() {
 	is_playing = false;
 }
 
+void change_dir() {
+	gpio_set_level(DIR_GPIO, current_dir ? 1 : 0);
+	current_dir = !current_dir;
+}
+
 void play_task(void* arg) {
 	while(1) {
 		if(is_playing) {
 			if(next_time_us <= esp_timer_get_time()) {
-				gpio_set_level(STEP_GPIO, current_state ? 1 : 0);
+				gpio_set_level(STEP_GPIO, current_pin_state ? 1 : 0);
 				next_time_us += current_period;
-				current_state = !current_state;
+				current_pin_state = !current_pin_state;
 			}
 		}
 	}
