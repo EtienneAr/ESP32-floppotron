@@ -7,12 +7,25 @@
 #include "pitch.h"
 #include "play.h"
 
-void init_play(BaseType_t core) {
+static int is_playing;
+static int current_note;
+static int current_position;
+static long current_period;
+static long next_time_us = 0;
+static bool current_pin_state = false;
+static bool current_dir;
+
+static void play_task(void* arg);
+static void position_floppy();
+
+void init_player(BaseType_t core) {
 	gpio_pad_select_gpio(STEP_GPIO);
     gpio_pad_select_gpio(DIR_GPIO);
     /* Set the GPIO as a push/pull output */
     gpio_set_direction(STEP_GPIO, GPIO_MODE_OUTPUT);
     gpio_set_direction(DIR_GPIO, GPIO_MODE_OUTPUT);
+
+    position_floppy();
 
     xTaskCreatePinnedToCore(play_task, "play_task", 2048, NULL, 10, NULL, core);
 }
@@ -27,9 +40,26 @@ void stop() {
 	is_playing = false;
 }
 
-void change_dir() {
+static inline void change_dir() {
 	gpio_set_level(DIR_GPIO, current_dir ? 1 : 0);
 	current_dir = !current_dir;
+}
+
+void position_floppy() {
+	int i;
+	for(i=0;i<CONFIG_STEP_LENGTH;i++) {
+		gpio_set_level(STEP_GPIO, 1);
+		vTaskDelay(10 / portTICK_PERIOD_MS);
+		gpio_set_level(STEP_GPIO, 0);
+		vTaskDelay(10 / portTICK_PERIOD_MS);
+	}
+	change_dir();
+	for(i=0;i<CONFIG_STEP_LENGTH/2;i++) {
+		gpio_set_level(STEP_GPIO, 1);
+		vTaskDelay(10 / portTICK_PERIOD_MS);
+		gpio_set_level(STEP_GPIO, 0);
+		vTaskDelay(10 / portTICK_PERIOD_MS);
+	}
 }
 
 void play_task(void* arg) {
@@ -39,6 +69,9 @@ void play_task(void* arg) {
 				gpio_set_level(STEP_GPIO, current_pin_state ? 1 : 0);
 				next_time_us += current_period;
 				current_pin_state = !current_pin_state;
+				if(current_pin_state) {
+					change_dir();
+				}
 			}
 		}
 	}

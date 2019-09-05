@@ -17,10 +17,10 @@
 void app_main()
 {
   printf("Main running on core : %d\n", xPortGetCoreID());
-  init_play(1);
-  for(int i=12;i<96;i++) {
-  	change_dir();
+  init_player(1);
+  for(int i=12;i<72;i++) {
   	play(i);
   	vTaskDelay(250 / portTICK_PERIOD_MS);
   }
+  stop();
 }
