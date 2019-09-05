@@ -10,17 +10,15 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#define ESP_INTR_FLAG_DEFAULT 0
-
-#include "play.h"
+#include "player.h"
 
 void app_main()
 {
   printf("Main running on core : %d\n", xPortGetCoreID());
-  init_player(1);
+  player_init(1);
   for(int i=12;i<72;i++) {
-  	play(i);
+  	player_play(i);
   	vTaskDelay(250 / portTICK_PERIOD_MS);
   }
-  stop();
+  player_stop();
 }

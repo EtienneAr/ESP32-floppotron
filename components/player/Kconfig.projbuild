@@ -1,0 +1,25 @@
+menu "Player"
+
+	config STEP_GPIO
+        int "GPIO stepper"
+        range 0 34
+        default 13
+        help
+            GPIO controlling the stepper.
+
+    config DIR_GPIO
+        int "GPIO direction"
+        range 0 34
+        default 27
+        help
+            GPIO controlling the direction.
+
+    config STEP_LENGTH
+        int "Number of steps"
+        range 0 65535
+        default 80
+        help
+            Number of steps per driver.
+            Used to avoid to bump on the end.
+            
+endmenu
