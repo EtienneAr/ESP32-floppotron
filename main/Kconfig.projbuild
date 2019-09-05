@@ -11,4 +11,11 @@ menu "Example Configuration"
 
             GPIOs 35-39 are input-only so cannot be used as outputs.
 
+    config STEP_LENGTH
+        int "Number of steps"
+        range 0 65535
+        default 80
+        help
+            Number of steps per driver.
+            Used to avoid to bump on the end.
 endmenu

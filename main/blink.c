@@ -40,6 +40,6 @@ void app_main()
         /* Blink on (output high) */
         gpio_set_level(BLINK_GPIO, 1);
         vTaskDelay(15 / portTICK_PERIOD_MS);
-        if(++n%80 == 0) gpio_set_level(DIR_GPIO, n%160 == 0 ? 1 : 0);
+        if(++n%CONFIG_STEP_LENGTH == 0) gpio_set_level(DIR_GPIO, n%(2*CONFIG_STEP_LENGTH) == 0 ? 1 : 0);
     }
 }
