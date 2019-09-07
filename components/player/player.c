@@ -7,12 +7,18 @@
 #include "pitch.h"
 #include "player.h"
 
-static int is_playing;
-static int current_note;
-static long current_period;
-static long next_time_us = 0;
-static bool current_pin_state = false;
-static bool current_dir;
+typedef struct player_state {
+	int  isPlaying;
+	int  note;
+	long period;
+	long nextTimeUS;
+	bool isPinHigh;
+	bool dir;
+	int  position;
+	int  goalPosition;
+} player_state_t;
+
+player_state_t current_state;
 
 static void play_task(void* arg);
 static void position_floppy();
@@ -30,46 +36,64 @@ void player_init(BaseType_t core) {
 }
 
 void player_play(int note) {
-	is_playing = true;
-	current_note = note;
-	current_period = period(note);
+	current_state.isPlaying = true;
+	current_state.note = note;
+	current_state.period = period(note);
 }
 
 void player_stop() {
-	is_playing = false;
+	current_state.isPlaying = false;
+}
+
+void player_set_position(int position) {
+	current_state.goalPosition = position;
 }
 
 static inline void change_dir() {
-	gpio_set_level(CONFIG_DIR_GPIO, current_dir ? 1 : 0);
-	current_dir = !current_dir;
+	
+	current_state.dir = !current_state.dir;
 }
 
 void position_floppy() {
 	int i;
+	gpio_set_level(CONFIG_DIR_GPIO, 0);
 	for(i=0;i<CONFIG_STEP_LENGTH;i++) {
 		gpio_set_level(CONFIG_STEP_GPIO, 1);
 		vTaskDelay(10 / portTICK_PERIOD_MS);
 		gpio_set_level(CONFIG_STEP_GPIO, 0);
 		vTaskDelay(10 / portTICK_PERIOD_MS);
 	}
-	change_dir();
+	gpio_set_level(CONFIG_DIR_GPIO, 1);
 	for(i=0;i<CONFIG_STEP_LENGTH/2;i++) {
 		gpio_set_level(CONFIG_STEP_GPIO, 1);
 		vTaskDelay(10 / portTICK_PERIOD_MS);
 		gpio_set_level(CONFIG_STEP_GPIO, 0);
 		vTaskDelay(10 / portTICK_PERIOD_MS);
 	}
+
+	current_state.position = CONFIG_STEP_LENGTH/2;
+	current_state.goalPosition = CONFIG_STEP_LENGTH/2;
+	gpio_set_level(CONFIG_DIR_GPIO, current_state.dir ? 1 : 0);
 }
 
 void play_task(void* arg) {
 	while(1) {
-		if(is_playing) {
-			if(next_time_us <= esp_timer_get_time()) {
-				gpio_set_level(CONFIG_STEP_GPIO, current_pin_state ? 1 : 0);
-				next_time_us += current_period;
-				current_pin_state = !current_pin_state;
-				if(current_pin_state) {
-					change_dir();
+		if(current_state.isPlaying) {
+			if(current_state.nextTimeUS <= esp_timer_get_time()) {
+				gpio_set_level(CONFIG_STEP_GPIO, current_state.isPinHigh ? 0 : 1);
+				current_state.nextTimeUS += current_state.period;
+				current_state.isPinHigh = !current_state.isPinHigh;
+
+				if(current_state.isPinHigh) {
+					if( (current_state.dir == true && current_state.position > current_state.goalPosition)
+					 || (current_state.dir == false && current_state.position <= current_state.goalPosition) ) {
+						current_state.dir = !current_state.dir;
+						gpio_set_level(CONFIG_DIR_GPIO, current_state.dir ? 1 : 0);
+					}
+				} else {
+					current_state.position += current_state.dir ? 1 : -1;
+					if(current_state.position < 0) current_state.position = 0;
+					if(current_state.position > CONFIG_STEP_LENGTH) current_state.position = CONFIG_STEP_LENGTH; 
 				}
 			}
 		}

@@ -22,9 +22,9 @@ void check_potentiometer() {
 
 	prev_position = 0;
 	do {
-		position = adc1_get_raw(ADC1_CHANNEL_6) * CONFIG_STEP_LENGTH / (1<<9);
-		if(position != prev_position) {
-			//player_position(position);
+		position = adc1_get_raw(ADC1_CHANNEL_6) * PLAYER_MAX_POSITION / (1<<9) ; //position is coded on  bits.
+		if(position - 2 > prev_position || position + 2 < prev_position) {
+			player_set_position(position);
 			printf("Pos : %d\n", position);
 			prev_position = position;
 		}
@@ -39,9 +39,12 @@ void app_main()
   player_init((BaseType_t) 1);
   xTaskCreatePinnedToCore(check_potentiometer, "potentiometer_task", 2048, NULL, 10, NULL, 0);
 
+  /*
   for(int i=12;i<72;i++) {
   	player_play(i);
   	vTaskDelay(250 / portTICK_PERIOD_MS);
   }
   player_stop();
+  */
+  player_play(50);
 }
