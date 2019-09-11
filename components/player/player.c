@@ -18,17 +18,21 @@ typedef struct player_state {
 	int  goalPosition;
 } player_state_t;
 
-player_state_t current_state;
+player_state_t current_state[3];
 
+static gpio_num_t gpio_step[3] = {CONFIG_STEP_GPIO_A, CONFIG_STEP_GPIO_B, CONFIG_STEP_GPIO_C};
+static gpio_num_t gpio_dir[3] = {CONFIG_DIR_GPIO_A,  CONFIG_DIR_GPIO_B,  CONFIG_DIR_GPIO_C};
+	
 static void play_task(void* arg);
 static void position_floppy();
 
 void player_init(BaseType_t core) {
-	gpio_pad_select_gpio(CONFIG_STEP_GPIO_A);
-    gpio_pad_select_gpio(CONFIG_DIR_GPIO_A);
-    /* Set the GPIO as a push/pull output */
-    gpio_set_direction(CONFIG_STEP_GPIO_A, GPIO_MODE_OUTPUT);
-    gpio_set_direction(CONFIG_DIR_GPIO_A, GPIO_MODE_OUTPUT);
+	for(int i=0;i<CONFIG_DRIVE_NB;i++) {
+		gpio_pad_select_gpio(gpio_step[i]);
+		gpio_pad_select_gpio(gpio_dir[i]);
+		gpio_set_direction(gpio_step[i], GPIO_MODE_OUTPUT);
+    	gpio_set_direction(gpio_dir[i], GPIO_MODE_OUTPUT);
+	}
 
     position_floppy();
 
@@ -36,64 +40,70 @@ void player_init(BaseType_t core) {
 }
 
 void player_play(int note) {
-	current_state.isPlaying = true;
-	current_state.note = note;
-	current_state.period = period(note);
+	current_state[0].isPlaying = true;
+	current_state[0].note = note;
+	current_state[0].period = period(note);
 }
 
 void player_stop() {
-	current_state.isPlaying = false;
+	current_state[0].isPlaying = false;
 }
 
 void player_set_position(int position) {
-	current_state.goalPosition = position;
+	current_state[0].goalPosition = position;
 }
 
 static inline void change_dir() {
 	
-	current_state.dir = !current_state.dir;
+	current_state[0].dir = !current_state[0].dir;
 }
 
 void position_floppy() {
 	int i;
-	gpio_set_level(CONFIG_DIR_GPIO_A, 0);
+	int j;
+	for(j=0;j<CONFIG_DRIVE_NB;j++) { gpio_set_level(gpio_dir[j], 0); }
+	
 	for(i=0;i<CONFIG_STEP_LENGTH;i++) {
-		gpio_set_level(CONFIG_STEP_GPIO_A, 1);
+		for(j=0;j<CONFIG_DRIVE_NB;j++) { gpio_set_level(gpio_step[j], 1); }
 		vTaskDelay(10 / portTICK_PERIOD_MS);
-		gpio_set_level(CONFIG_STEP_GPIO_A, 0);
+		for(j=0;j<CONFIG_DRIVE_NB;j++) { gpio_set_level(gpio_step[j], 0); }
 		vTaskDelay(10 / portTICK_PERIOD_MS);
 	}
-	gpio_set_level(CONFIG_DIR_GPIO_A, 1);
+	
+	for(j=0;j<CONFIG_DRIVE_NB;j++) { gpio_set_level(gpio_dir[j], 1); }
+	
 	for(i=0;i<CONFIG_STEP_LENGTH/2;i++) {
-		gpio_set_level(CONFIG_STEP_GPIO_A, 1);
+		for(j=0;j<CONFIG_DRIVE_NB;j++) { gpio_set_level(gpio_step[j], 1); }
 		vTaskDelay(10 / portTICK_PERIOD_MS);
-		gpio_set_level(CONFIG_STEP_GPIO_A, 0);
+		for(j=0;j<CONFIG_DRIVE_NB;j++) { gpio_set_level(gpio_step[j], 0); }
 		vTaskDelay(10 / portTICK_PERIOD_MS);
 	}
 
-	current_state.position = CONFIG_STEP_LENGTH/2;
-	current_state.goalPosition = CONFIG_STEP_LENGTH/2;
-	gpio_set_level(CONFIG_DIR_GPIO_A, current_state.dir ? 1 : 0);
+	for(j=0;j<CONFIG_DRIVE_NB;j++) { 
+		current_state[j].position = CONFIG_STEP_LENGTH/2;
+		current_state[j].goalPosition = CONFIG_STEP_LENGTH/2;
+		gpio_set_level(gpio_step[j], current_state[0].dir ? 1 : 0);
+	}
 }
 
 void play_task(void* arg) {
 	while(1) {
-		if(current_state.isPlaying) {
-			if(current_state.nextTimeUS <= esp_timer_get_time()) {
-				gpio_set_level(CONFIG_STEP_GPIO_A, current_state.isPinHigh ? 0 : 1);
-				current_state.nextTimeUS += current_state.period;
-				current_state.isPinHigh = !current_state.isPinHigh;
+		if(current_state[0].isPlaying) {
+			if(current_state[0].nextTimeUS <= esp_timer_get_time()) {
+				gpio_set_level(CONFIG_STEP_GPIO_A, current_state[0].isPinHigh ? 0 : 1);
+				current_state[0].nextTimeUS += current_state[0].period;
+				current_state[0].isPinHigh = !current_state[0].isPinHigh;
 
-				if(current_state.isPinHigh) {
-					if( (current_state.dir == true && current_state.position > current_state.goalPosition)
-					 || (current_state.dir == false && current_state.position <= current_state.goalPosition) ) {
-						current_state.dir = !current_state.dir;
-						gpio_set_level(CONFIG_DIR_GPIO_A, current_state.dir ? 1 : 0);
+				if(current_state[0].isPinHigh) {
+					if( (current_state[0].dir == true && current_state[0].position > current_state[0].goalPosition)
+					 || (current_state[0].dir == false && current_state[0].position <= current_state[0].goalPosition) ) {
+						current_state[0].dir = !current_state[0].dir;
+						gpio_set_level(CONFIG_DIR_GPIO_A, current_state[0].dir ? 1 : 0);
 					}
 				} else {
-					current_state.position += current_state.dir ? 1 : -1;
-					if(current_state.position < 0) current_state.position = 0;
-					if(current_state.position > CONFIG_STEP_LENGTH) current_state.position = CONFIG_STEP_LENGTH; 
+					current_state[0].position += current_state[0].dir ? 1 : -1;
+					if(current_state[0].position < 0) current_state[0].position = 0;
+					if(current_state[0].position > CONFIG_STEP_LENGTH) current_state[0].position = CONFIG_STEP_LENGTH; 
 				}
 			}
 		}

@@ -9,6 +9,14 @@ menu "Player"
             Used to avoid to bump on the end.
 
 
+    config DRIVE_NB
+        int "Number of drive"
+        range 1 3
+        default 3
+        help
+            Number of drive to command.
+
+
 
 	config STEP_GPIO_A
         int "A: GPIO stepper"
