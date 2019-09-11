@@ -1,19 +1,5 @@
 menu "Player"
 
-	config STEP_GPIO
-        int "GPIO stepper"
-        range 0 34
-        default 13
-        help
-            GPIO controlling the stepper.
-
-    config DIR_GPIO
-        int "GPIO direction"
-        range 0 34
-        default 27
-        help
-            GPIO controlling the direction.
-
     config STEP_LENGTH
         int "Number of steps"
         range 0 65535
@@ -21,5 +7,74 @@ menu "Player"
         help
             Number of steps per driver.
             Used to avoid to bump on the end.
+
+
+
+	config STEP_GPIO_A
+        int "A: GPIO stepper"
+        range 0 34
+        default 18
+        help
+            GPIO controlling the stepper of the 1st drive.
+
+    config DIR_GPIO_A
+        int "A: GPIO direction"
+        range 0 34
+        default 19
+        help
+            GPIO controlling the direction of the 1st drive.
+
+
+    config STEP_GPIO_B
+        int "B: GPIO stepper"
+        range 0 34
+        default 16
+        help
+            GPIO controlling the stepper of the 2nd drive.
+
+    config DIR_GPIO_B
+        int "B: GPIO direction"
+        range 0 34
+        default 17
+        help
+            GPIO controlling the direction of the 2nd drive.
+
+
+    config STEP_GPIO_C
+        int "C: GPIO stepper"
+        range 0 34
+        default 2
+        help
+            GPIO controlling the stepper of the 3rd drive.
+
+    config DIR_GPIO_C
+        int "C: GPIO direction"
+        range 0 34
+        default 4
+        help
+            GPIO controlling the direction of the 3rd drive.
+
+
+
+    config POT_GPIO_A
+        int "GPIO potentiometer A"
+        range 32 39
+        default 35
+        help
+            GPIO reading the 1st potentiometer.
+
+    config POT_GPIO_B
+        int "GPIO potentiometer B"
+        range 32 39
+        default 32
+        help
+            GPIO reading the 2nd potentiometer.
+
+    config POT_GPIO_C
+        int "GPIO potentiometer c"
+        range 32 34
+        default 33
+        help
+            GPIO reading the 3rd potentiometer.
             
 endmenu

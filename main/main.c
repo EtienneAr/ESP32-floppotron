@@ -77,5 +77,6 @@ void app_main()
   }
   player_stop();
   */
+
   player_play(50);
 }

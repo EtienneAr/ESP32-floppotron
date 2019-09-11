@@ -24,11 +24,11 @@ static void play_task(void* arg);
 static void position_floppy();
 
 void player_init(BaseType_t core) {
-	gpio_pad_select_gpio(CONFIG_STEP_GPIO);
-    gpio_pad_select_gpio(CONFIG_DIR_GPIO);
+	gpio_pad_select_gpio(CONFIG_STEP_GPIO_A);
+    gpio_pad_select_gpio(CONFIG_DIR_GPIO_A);
     /* Set the GPIO as a push/pull output */
-    gpio_set_direction(CONFIG_STEP_GPIO, GPIO_MODE_OUTPUT);
-    gpio_set_direction(CONFIG_DIR_GPIO, GPIO_MODE_OUTPUT);
+    gpio_set_direction(CONFIG_STEP_GPIO_A, GPIO_MODE_OUTPUT);
+    gpio_set_direction(CONFIG_DIR_GPIO_A, GPIO_MODE_OUTPUT);
 
     position_floppy();
 
@@ -56,31 +56,31 @@ static inline void change_dir() {
 
 void position_floppy() {
 	int i;
-	gpio_set_level(CONFIG_DIR_GPIO, 0);
+	gpio_set_level(CONFIG_DIR_GPIO_A, 0);
 	for(i=0;i<CONFIG_STEP_LENGTH;i++) {
-		gpio_set_level(CONFIG_STEP_GPIO, 1);
+		gpio_set_level(CONFIG_STEP_GPIO_A, 1);
 		vTaskDelay(10 / portTICK_PERIOD_MS);
-		gpio_set_level(CONFIG_STEP_GPIO, 0);
+		gpio_set_level(CONFIG_STEP_GPIO_A, 0);
 		vTaskDelay(10 / portTICK_PERIOD_MS);
 	}
-	gpio_set_level(CONFIG_DIR_GPIO, 1);
+	gpio_set_level(CONFIG_DIR_GPIO_A, 1);
 	for(i=0;i<CONFIG_STEP_LENGTH/2;i++) {
-		gpio_set_level(CONFIG_STEP_GPIO, 1);
+		gpio_set_level(CONFIG_STEP_GPIO_A, 1);
 		vTaskDelay(10 / portTICK_PERIOD_MS);
-		gpio_set_level(CONFIG_STEP_GPIO, 0);
+		gpio_set_level(CONFIG_STEP_GPIO_A, 0);
 		vTaskDelay(10 / portTICK_PERIOD_MS);
 	}
 
 	current_state.position = CONFIG_STEP_LENGTH/2;
 	current_state.goalPosition = CONFIG_STEP_LENGTH/2;
-	gpio_set_level(CONFIG_DIR_GPIO, current_state.dir ? 1 : 0);
+	gpio_set_level(CONFIG_DIR_GPIO_A, current_state.dir ? 1 : 0);
 }
 
 void play_task(void* arg) {
 	while(1) {
 		if(current_state.isPlaying) {
 			if(current_state.nextTimeUS <= esp_timer_get_time()) {
-				gpio_set_level(CONFIG_STEP_GPIO, current_state.isPinHigh ? 0 : 1);
+				gpio_set_level(CONFIG_STEP_GPIO_A, current_state.isPinHigh ? 0 : 1);
 				current_state.nextTimeUS += current_state.period;
 				current_state.isPinHigh = !current_state.isPinHigh;
 
@@ -88,7 +88,7 @@ void play_task(void* arg) {
 					if( (current_state.dir == true && current_state.position > current_state.goalPosition)
 					 || (current_state.dir == false && current_state.position <= current_state.goalPosition) ) {
 						current_state.dir = !current_state.dir;
-						gpio_set_level(CONFIG_DIR_GPIO, current_state.dir ? 1 : 0);
+						gpio_set_level(CONFIG_DIR_GPIO_A, current_state.dir ? 1 : 0);
 					}
 				} else {
 					current_state.position += current_state.dir ? 1 : -1;
