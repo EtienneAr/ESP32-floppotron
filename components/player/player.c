@@ -39,24 +39,31 @@ void player_init(BaseType_t core) {
     xTaskCreatePinnedToCore(play_task, "play_task", 2048, NULL, 10, NULL, core);
 }
 
+/* TODO : return which drive is playing */
 void player_play(int note) {
-	current_state[0].isPlaying = true;
-	current_state[0].note = note;
-	current_state[0].period = period(note);
+	for(int i=0;i<CONFIG_DRIVE_NB;i++) {
+		if(current_state[i].isPlaying == false) {
+			current_state[i].isPlaying = true;
+			current_state[i].note = note;
+			current_state[i].period = period(note);
+			return;
+		}
+	}
 }
 
-void player_stop() {
-	current_state[0].isPlaying = false;
+void player_stop(int note) {
+	for(int i=0;i<CONFIG_DRIVE_NB;i++) {
+		if(current_state[i].isPlaying == true && current_state[i].note == note) {
+			current_state[i].isPlaying = false;
+			return;
+		}
+	}
 }
 
-void player_set_position(int position) {
-	current_state[0].goalPosition = position;
+void player_set_position(int drive, int position) {
+	current_state[drive].goalPosition = position;
 }
 
-static inline void change_dir() {
-	
-	current_state[0].dir = !current_state[0].dir;
-}
 
 void position_floppy() {
 	int i;
@@ -82,28 +89,30 @@ void position_floppy() {
 	for(j=0;j<CONFIG_DRIVE_NB;j++) { 
 		current_state[j].position = CONFIG_STEP_LENGTH/2;
 		current_state[j].goalPosition = CONFIG_STEP_LENGTH/2;
-		gpio_set_level(gpio_step[j], current_state[0].dir ? 1 : 0);
+		gpio_set_level(gpio_step[j], current_state[j].dir ? 1 : 0);
 	}
 }
 
 void play_task(void* arg) {
 	while(1) {
-		if(current_state[0].isPlaying) {
-			if(current_state[0].nextTimeUS <= esp_timer_get_time()) {
-				gpio_set_level(CONFIG_STEP_GPIO_A, current_state[0].isPinHigh ? 0 : 1);
-				current_state[0].nextTimeUS += current_state[0].period;
-				current_state[0].isPinHigh = !current_state[0].isPinHigh;
+		for(int j=0;j<CONFIG_DRIVE_NB;j++) { 
+			if(current_state[j].isPlaying) {
+				if(current_state[j].nextTimeUS <= esp_timer_get_time()) {
+					gpio_set_level(gpio_step[j], current_state[j].isPinHigh ? 0 : 1);
+					current_state[j].nextTimeUS += current_state[j].period;
+					current_state[j].isPinHigh = !current_state[j].isPinHigh;
 
-				if(current_state[0].isPinHigh) {
-					if( (current_state[0].dir == true && current_state[0].position > current_state[0].goalPosition)
-					 || (current_state[0].dir == false && current_state[0].position <= current_state[0].goalPosition) ) {
-						current_state[0].dir = !current_state[0].dir;
-						gpio_set_level(CONFIG_DIR_GPIO_A, current_state[0].dir ? 1 : 0);
+					if(current_state[j].isPinHigh) {
+						if( (current_state[j].dir == true && current_state[j].position > current_state[j].goalPosition)
+						 || (current_state[j].dir == false && current_state[j].position <= current_state[j].goalPosition) ) {
+							current_state[j].dir = !current_state[j].dir;
+							gpio_set_level(gpio_dir[j], current_state[j].dir ? 1 : 0);
+						}
+					} else {
+						current_state[j].position += current_state[j].dir ? 1 : -1;
+						if(current_state[j].position < 0) current_state[j].position = 0;
+						if(current_state[j].position > CONFIG_STEP_LENGTH) current_state[j].position = CONFIG_STEP_LENGTH; 
 					}
-				} else {
-					current_state[0].position += current_state[0].dir ? 1 : -1;
-					if(current_state[0].position < 0) current_state[0].position = 0;
-					if(current_state[0].position > CONFIG_STEP_LENGTH) current_state[0].position = CONFIG_STEP_LENGTH; 
 				}
 			}
 		}

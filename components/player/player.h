@@ -5,7 +5,7 @@
 
 void player_init(BaseType_t core);
 void player_play(int note);
-void player_stop();
-void player_set_position(int position);
+void player_stop(int note);
+void player_set_position(int drive, int position);
 
 #endif

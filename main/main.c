@@ -19,13 +19,13 @@ void check_potentiometer() {
 	int position, prev_position;
 
 	adc1_config_width(ADC_WIDTH_BIT_9); //minimum resolution
-  	adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_11); //Largest scale : 3.9V
+  adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_11); //Largest scale : 3.9V
 
 	prev_position = 0;
 	do {
 		position = adc1_get_raw(ADC1_CHANNEL_6) * PLAYER_MAX_POSITION / (1<<9) ; //position is coded on  bits.
 		if(position - 2 > prev_position || position + 2 < prev_position) {
-			player_set_position(position);
+			//player_set_position(position);
 			prev_position = position;
 		}
 		vTaskDelay(50 / portTICK_PERIOD_MS);
@@ -79,4 +79,6 @@ void app_main()
   */
 
   player_play(50);
+  player_play(54);
+  player_play(57);
 }
