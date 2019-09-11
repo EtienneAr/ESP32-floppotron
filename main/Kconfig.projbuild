@@ -1,0 +1,23 @@
+menu "Main"
+    config POT_GPIO_A
+        int "GPIO potentiometer A"
+        range 32 39
+        default 35
+        help
+            GPIO reading the 1st potentiometer.
+
+    config POT_GPIO_B
+        int "GPIO potentiometer B"
+        range 32 39
+        default 32
+        help
+            GPIO reading the 2nd potentiometer.
+
+    config POT_GPIO_C
+        int "GPIO potentiometer c"
+        range 32 34
+        default 33
+        help
+            GPIO reading the 3rd potentiometer.
+            
+endmenu

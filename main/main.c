@@ -14,20 +14,28 @@
 #include "driver/uart.h"
 
 #include "player.h"
+#include "gpioToADC.h"
+
+static adc1_channel_t adc_channels[3] = { ADC_CHAN_POTA, ADC_CHAN_POTB, ADC_CHAN_POTC };
 
 void check_potentiometer() {
-	int position, prev_position;
+	int position[3], prev_position[3];
+  int j;
 
 	adc1_config_width(ADC_WIDTH_BIT_9); //minimum resolution
-  adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_11); //Largest scale : 3.9V
+  for(j=0;j<3;j++) {
+    adc1_config_channel_atten(adc_channels[j],ADC_ATTEN_DB_11); //Largest scale : 3.9V
+    prev_position[j] = 0;
+  }
 
-	prev_position = 0;
 	do {
-		position = adc1_get_raw(ADC1_CHANNEL_6) * PLAYER_MAX_POSITION / (1<<9) ; //position is coded on  bits.
-		if(position - 2 > prev_position || position + 2 < prev_position) {
-			//player_set_position(position);
-			prev_position = position;
-		}
+    for(j=0;j<3;j++) {
+  		position[j] = adc1_get_raw(adc_channels[j]) * PLAYER_MAX_POSITION / (1<<9) ; //position is coded on  bits.
+  		if(position[j] - 2 > prev_position[j] || position[j] + 2 < prev_position[j]) {
+  			player_set_position(j, position[j]);
+  			prev_position[j] = position[j];
+  		}
+    }
 		vTaskDelay(50 / portTICK_PERIOD_MS);
 	} while(1);
 }
