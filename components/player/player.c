@@ -40,9 +40,9 @@ void player_init(BaseType_t core) {
 }
 
 /* TODO : return which drive is playing */
-void player_play(int note) {
+void player_play(int note, int mask) {
 	for(int i=0;i<CONFIG_DRIVE_NB;i++) {
-		if(current_state[i].isPlaying == false) {
+		if(current_state[i].isPlaying == false && (mask&(1<<i)) != 0) {
 			current_state[i].isPlaying = true;
 			current_state[i].note = note;
 			current_state[i].period = period(note);
