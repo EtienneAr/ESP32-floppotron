@@ -64,9 +64,9 @@ void uart_task() {
     	uart_get_buffered_data_len(UART_NUM_1, &buff_len);
     	if(buff_len > 2) {
     		uart_read_bytes(UART_NUM_1, buff_bytes, 3, 1000 / portTICK_RATE_MS);
-    		printf("cmd : %d, note : %d, velo : %d\n", buff_bytes[0], buff_bytes[1], buff_bytes[2]);
+    		//printf("cmd : %d, note : %d, velo : %d\n", buff_bytes[0], buff_bytes[1], buff_bytes[2]);
         if(buff_bytes[0] >> 4 == 0x9) player_play(buff_bytes[1], buff_bytes[0] & ((1<<4)-1));
-        if(buff_bytes[0] >> 4 == 0x8) player_stop(buff_bytes[1]);
+        if(buff_bytes[0] >> 4 == 0x8) player_stop(buff_bytes[1], buff_bytes[0] & ((1<<4)-1));
     	}
     	vTaskDelay(50 / portTICK_PERIOD_MS);
     }

@@ -82,40 +82,43 @@ void player_play(int note, int mask) {
 	}
 }
 
-/* TODO : Take mask into account for stop too */
-void player_stop(int note) {
+void player_stop(int note, int mask) {
 	//First check if the note to stop is currently played
 	for(int i=0;i<CONFIG_DRIVE_NB;i++) {
-		if(current_state[i].isPlaying == true) {
-			if(current_state[i].note == note) {
-				//Check if there is another note to play in the queue
-				if(current_state[i].queueLen > 0) {
-					//Pop the queue
-					current_state[i].note = current_state[i].queue[0];
-					current_state[i].period = period(current_state[i].note);
-					current_state[i].queueLen--;
-					for(int j=0;j<current_state[i].queueLen;j++) {
-						current_state[i].queue[j] = current_state[i].queue[j+1];
+		if((mask&(1<<i)) != 0) {
+			if(current_state[i].isPlaying == true) {
+				if(current_state[i].note == note) {
+					//Check if there is another note to play in the queue
+					if(current_state[i].queueLen > 0) {
+						//Pop the queue
+						current_state[i].note = current_state[i].queue[0];
+						current_state[i].period = period(current_state[i].note);
+						current_state[i].queueLen--;
+						for(int j=0;j<current_state[i].queueLen;j++) {
+							current_state[i].queue[j] = current_state[i].queue[j+1];
+						}
+					} else {
+						//If the queue is empty, then stops the drive
+						current_state[i].isPlaying = false;
 					}
-				} else {
-					//If the queue is empty, then stops the drive
-					current_state[i].isPlaying = false;
+					return;
 				}
-				return;
 			}
 		}
 	}
 
 	//If nothing found, search in queues
 	for(int i=0;i<CONFIG_DRIVE_NB;i++) {
-		int isNoteFound = false;
-		for(int j=0;j<current_state[i].queueLen;j++) {
-			if(current_state[i].queue[j] == note) {
-				current_state[i].queueLen--;
-				isNoteFound = true;
-			}
-			if(isNoteFound) {
-				current_state[i].queue[j] = current_state[i].queue[j+1];
+		if((mask&(1<<i)) != 0) {
+			int isNoteFound = false;
+			for(int j=0;j<current_state[i].queueLen;j++) {
+				if(current_state[i].queue[j] == note) {
+					current_state[i].queueLen--;
+					isNoteFound = true;
+				}
+				if(isNoteFound) {
+					current_state[i].queue[j] = current_state[i].queue[j+1];
+				}
 			}
 		}
 	}
