@@ -7,6 +7,8 @@
 #include "pitch.h"
 #include "player.h"
 
+#define QUEUE_LEN_MAX 3
+
 typedef struct player_state {
 	int  isPlaying;
 	int  note;
@@ -16,9 +18,13 @@ typedef struct player_state {
 	bool dir;
 	int  position;
 	int  goalPosition;
+
+	/* TODO : Create special function to handle queue*/
+	int queue[QUEUE_LEN_MAX];
+	int queueLen;
 } player_state_t;
 
-player_state_t current_state[3];
+player_state_t current_state[CONFIG_DRIVE_NB];
 
 static gpio_num_t gpio_step[3] = {CONFIG_STEP_GPIO_A, CONFIG_STEP_GPIO_B, CONFIG_STEP_GPIO_C};
 static gpio_num_t gpio_dir[3] = {CONFIG_DIR_GPIO_A,  CONFIG_DIR_GPIO_B,  CONFIG_DIR_GPIO_C};
@@ -32,6 +38,8 @@ void player_init(BaseType_t core) {
 		gpio_pad_select_gpio(gpio_dir[i]);
 		gpio_set_direction(gpio_step[i], GPIO_MODE_OUTPUT);
     	gpio_set_direction(gpio_dir[i], GPIO_MODE_OUTPUT);
+
+    	current_state[i].queueLen = 0;
 	}
 
     position_floppy();
@@ -39,23 +47,76 @@ void player_init(BaseType_t core) {
     xTaskCreatePinnedToCore(play_task, "play_task", 2048, NULL, 10, NULL, core);
 }
 
-/* TODO : return which drive is playing */
 void player_play(int note, int mask) {
+	int smallestQueue = QUEUE_LEN_MAX;
+	int smallestQueue_i = -1;
+
 	for(int i=0;i<CONFIG_DRIVE_NB;i++) {
-		if(current_state[i].isPlaying == false && (mask&(1<<i)) != 0) {
-			current_state[i].isPlaying = true;
-			current_state[i].note = note;
-			current_state[i].period = period(note);
-			return;
+		if((mask&(1<<i)) != 0) {
+			//If no note is playing, play on this one !
+			if(current_state[i].isPlaying == false) {
+				smallestQueue = 0;
+				smallestQueue_i = i;
+				break;
+			}
+			//Otherwise, compare to find the less busy drive
+			if(current_state[i].queueLen < smallestQueue) {
+				smallestQueue_i = i;
+				smallestQueue = current_state[i].queueLen;
+			}
 		}
+	}
+	if(smallestQueue < QUEUE_LEN_MAX) {
+		if(current_state[smallestQueue_i].isPlaying) {
+			//if the drive already plays, add the current note to queue
+			for(int i=current_state[smallestQueue_i].queueLen;i>0;i--) {
+				current_state[smallestQueue_i].queue[i] = current_state[smallestQueue_i].queue[i-1];
+			}
+			current_state[smallestQueue_i].queue[0] = current_state[smallestQueue_i].note;
+			current_state[smallestQueue_i].queueLen++;
+		}
+		//Play the new note
+		current_state[smallestQueue_i].isPlaying = true;
+		current_state[smallestQueue_i].note = note;
+		current_state[smallestQueue_i].period = period(note);
 	}
 }
 
+/* TODO : Take mask into account for stop too */
 void player_stop(int note) {
+	//First check if the note to stop is currently played
 	for(int i=0;i<CONFIG_DRIVE_NB;i++) {
-		if(current_state[i].isPlaying == true && current_state[i].note == note) {
-			current_state[i].isPlaying = false;
-			return;
+		if(current_state[i].isPlaying == true) {
+			if(current_state[i].note == note) {
+				//Check if there is another note to play in the queue
+				if(current_state[i].queueLen > 0) {
+					//Pop the queue
+					current_state[i].note = current_state[i].queue[0];
+					current_state[i].period = period(current_state[i].note);
+					current_state[i].queueLen--;
+					for(int j=0;j<current_state[i].queueLen;j++) {
+						current_state[i].queue[j] = current_state[i].queue[j+1];
+					}
+				} else {
+					//If the queue is empty, then stops the drive
+					current_state[i].isPlaying = false;
+				}
+				return;
+			}
+		}
+	}
+
+	//If nothing found, search in queues
+	for(int i=0;i<CONFIG_DRIVE_NB;i++) {
+		int isNoteFound = false;
+		for(int j=0;j<current_state[i].queueLen;j++) {
+			if(current_state[i].queue[j] == note) {
+				current_state[i].queueLen--;
+				isNoteFound = true;
+			}
+			if(isNoteFound) {
+				current_state[i].queue[j] = current_state[i].queue[j+1];
+			}
 		}
 	}
 }
