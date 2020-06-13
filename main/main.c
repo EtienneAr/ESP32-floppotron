@@ -43,7 +43,7 @@ void check_potentiometer() {
 static const int RX_BUF_SIZE = 512;
 
 #define TXD_PIN (GPIO_NUM_26)
-#define RXD_PIN (GPIO_NUM_25)
+#define RXD_PIN (GPIO_NUM_27)
 
 void uart_task() {
     const uart_config_t uart_config = {
