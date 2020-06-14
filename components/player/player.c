@@ -28,23 +28,37 @@ player_state_t current_state[CONFIG_DRIVE_NB];
 
 static gpio_num_t gpio_step[3] = {CONFIG_STEP_GPIO_A, CONFIG_STEP_GPIO_B, CONFIG_STEP_GPIO_C};
 static gpio_num_t gpio_dir[3] = {CONFIG_DIR_GPIO_A,  CONFIG_DIR_GPIO_B,  CONFIG_DIR_GPIO_C};
+static gpio_num_t gpio_led[3] = {CONFIG_LED_GPIO_A,  CONFIG_LED_GPIO_B,  CONFIG_LED_GPIO_C};
 	
 static void play_task(void* arg);
 static void position_floppy();
+static void player_updateLeds();
 
 void player_init(BaseType_t core) {
 	for(int i=0;i<CONFIG_DRIVE_NB;i++) {
 		gpio_pad_select_gpio(gpio_step[i]);
 		gpio_pad_select_gpio(gpio_dir[i]);
+		gpio_pad_select_gpio(gpio_led[i]);
 		gpio_set_direction(gpio_step[i], GPIO_MODE_OUTPUT);
     	gpio_set_direction(gpio_dir[i], GPIO_MODE_OUTPUT);
+    	gpio_set_direction(gpio_led[i], GPIO_MODE_OUTPUT);
+
+    	gpio_set_level(gpio_led[i], 1);
 
     	current_state[i].queueLen = 0;
 	}
 
     position_floppy();
 
+    player_updateLeds();
+
     xTaskCreatePinnedToCore(play_task, "play_task", 2048, NULL, 10, NULL, core);
+}
+
+void player_updateLeds() {
+	for(int i=0;i<CONFIG_DRIVE_NB;i++) {
+		gpio_set_level(gpio_led[i], current_state[i].isPlaying ? 1 : 0);
+	}
 }
 
 void player_play(int note, int mask) {
@@ -80,6 +94,8 @@ void player_play(int note, int mask) {
 		current_state[smallestQueue_i].note = note;
 		current_state[smallestQueue_i].period = period(note);
 	}
+
+	player_updateLeds();
 }
 
 void player_stop(int note, int mask) {
@@ -135,6 +151,8 @@ void player_stop(int note, int mask) {
 			}
 		}
 	}
+
+	player_updateLeds();
 }
 
 void player_set_position(int drive, int position) {

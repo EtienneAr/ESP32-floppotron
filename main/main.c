@@ -42,7 +42,6 @@ void check_potentiometer() {
 
 static const int RX_BUF_SIZE = 512;
 
-#define TXD_PIN (GPIO_NUM_26)
 #define RXD_PIN (GPIO_NUM_27)
 
 void uart_task() {
@@ -54,7 +53,7 @@ void uart_task() {
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
     };
     uart_param_config(UART_NUM_1, &uart_config);
-    uart_set_pin(UART_NUM_1, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    uart_set_pin(UART_NUM_1, UART_PIN_NO_CHANGE, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     // We won't use a buffer for sending data.
     uart_driver_install(UART_NUM_1, RX_BUF_SIZE * 2, 0, 0, NULL, 0);
     
@@ -79,28 +78,4 @@ void app_main()
   player_init((BaseType_t) 1);
   xTaskCreatePinnedToCore(check_potentiometer, "potentiometer_task", 2048, NULL, 10, NULL, 0);
   xTaskCreatePinnedToCore(uart_task, "uart_task", 2048, NULL, 10, NULL, 0);
-
-  /*
-  for(int i=12;i<72;i++) {
-  	player_play(i);
-  	vTaskDelay(250 / portTICK_PERIOD_MS);
-  }
-  player_stop();
-  */
-
-  /*
-  while(true) {
-    for(int i=24;i<=60;i+=12) {
-      player_play(i);
-      player_play(i);
-      player_play(i);
-
-      vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-      player_stop(i);
-      player_stop(i);
-      player_stop(i);
-    }
-  }
-  */
 }

@@ -32,6 +32,13 @@ menu "Player"
         help
             GPIO controlling the direction of the 1st drive.
 
+    config LED_GPIO_A
+        int "GPIO led A"
+        range 0 34
+        default 26
+        help
+            GPIO driving the 1st led.
+
 
     config STEP_GPIO_B
         int "B: GPIO stepper"
@@ -47,6 +54,13 @@ menu "Player"
         help
             GPIO controlling the direction of the 2nd drive.
 
+    config LED_GPIO_B
+        int "GPIO led B"
+        range 0 34
+        default 25
+        help
+            GPIO driving the 2nd led.
+
 
     config STEP_GPIO_C
         int "C: GPIO stepper"
@@ -61,5 +75,12 @@ menu "Player"
         default 4
         help
             GPIO controlling the direction of the 3rd drive.
+
+    config LED_GPIO_C
+        int "GPIO led c"
+        range 0 34
+        default 22
+        help
+            GPIO driving the 3rd led.
             
 endmenu
