@@ -130,6 +130,7 @@ void player_stop(int note, int mask) {
 						//If the queue is empty, then stops the drive
 						current_state[i].isPlaying = false;
 					}
+					player_updateLeds();
 					return;
 				}
 			}
