@@ -83,6 +83,19 @@ void player_play(int note, int mask) {
 }
 
 void player_stop(int note, int mask) {
+	//Special case : if the note is 0, kill the channel
+	if(note == 0) {
+		for(int i=0;i<CONFIG_DRIVE_NB;i++) {
+			if((mask&(1<<i)) != 0) {
+				//Reset the queue
+				current_state[i].queueLen = 0;
+				//Stop the drive
+				current_state[i].isPlaying = false;
+			}
+		}
+	}
+
+
 	//First check if the note to stop is currently played
 	for(int i=0;i<CONFIG_DRIVE_NB;i++) {
 		if((mask&(1<<i)) != 0) {
