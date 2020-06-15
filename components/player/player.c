@@ -10,21 +10,21 @@
 #define QUEUE_LEN_MAX 3
 
 typedef struct player_state {
-	int  isPlaying;
-	int  note;
-	long period;
-	long nextTimeUS;
-	bool isPinHigh;
-	bool dir;
-	int  position;
-	int  goalPosition;
+	volatile int  isPlaying;
+	volatile int  note;
+	volatile long period;
+	volatile long nextTimeUS;
+	volatile bool isPinHigh;
+	volatile bool dir;
+	volatile int  position;
+	volatile int  goalPosition;
 
 	/* TODO : Create special function to handle queue*/
-	int queue[QUEUE_LEN_MAX];
-	int queueLen;
+	volatile int queue[QUEUE_LEN_MAX];
+	volatile int queueLen;
 } player_state_t;
 
-player_state_t current_state[CONFIG_DRIVE_NB];
+volatile player_state_t current_state[CONFIG_DRIVE_NB];
 
 static gpio_num_t gpio_step[3] = {CONFIG_STEP_GPIO_A, CONFIG_STEP_GPIO_B, CONFIG_STEP_GPIO_C};
 static gpio_num_t gpio_dir[3] = {CONFIG_DIR_GPIO_A,  CONFIG_DIR_GPIO_B,  CONFIG_DIR_GPIO_C};
@@ -88,6 +88,9 @@ void player_play(int note, int mask) {
 			}
 			current_state[smallestQueue_i].queue[0] = current_state[smallestQueue_i].note;
 			current_state[smallestQueue_i].queueLen++;
+		} else {
+			//The drive was not playing already
+			current_state[smallestQueue_i].nextTimeUS = -1; //To tell the drive to start playing immediately
 		}
 		//Play the new note
 		current_state[smallestQueue_i].isPlaying = true;
@@ -190,11 +193,13 @@ void position_floppy() {
 }
 
 void play_task(void* arg) {
-	while(1) {
+	for( ;; ) {
 		for(int j=0;j<CONFIG_DRIVE_NB;j++) { 
 			if(current_state[j].isPlaying) {
-				if(current_state[j].nextTimeUS <= esp_timer_get_time()) {
+				if(current_state[j].nextTimeUS < 0 || current_state[j].nextTimeUS <= esp_timer_get_time()) {
 					gpio_set_level(gpio_step[j], current_state[j].isPinHigh ? 0 : 1);
+					
+					if(current_state[j].nextTimeUS < 0) current_state[j].nextTimeUS = esp_timer_get_time();
 					current_state[j].nextTimeUS += current_state[j].period;
 					current_state[j].isPinHigh = !current_state[j].isPinHigh;
 
